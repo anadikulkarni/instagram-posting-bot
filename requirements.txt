@@ -2,3 +2,7 @@ flask
 requests
 python-dotenv
 tqdm
+streamlit 
+cloudinary 
+python-magic 
+requests
