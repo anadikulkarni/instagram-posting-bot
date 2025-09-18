@@ -247,7 +247,16 @@ for gname in selected_groups:
     expanded_group_accounts.extend([acc.ig_id for acc in g.accounts])
 db.close()
 
-final_selected_accounts = list(set(selected_accounts + expanded_group_accounts))
+# Resolve group members
+db = SessionLocal()
+expanded_group_accounts = []
+for gname in selected_groups:
+    g = db.query(Group).filter_by(name=gname).first()
+    expanded_group_accounts.extend([acc.ig_id for acc in g.accounts])
+db.close()
+
+# Deduplicate (account may be in multiple groups + manually selected)
+final_selected_accounts = list(dict.fromkeys(selected_accounts + expanded_group_accounts))
 
 uploaded_file = st.file_uploader(
     "Upload an image or video",
