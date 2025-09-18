@@ -118,7 +118,7 @@ def upload_to_cloudinary(file):
 def post_to_instagram(selected_ig_ids, media_url, caption, public_id, media_type):
     results = []
     for ig_id in selected_ig_ids:
-        # Step 1: Create media container
+        # Step 1: Create media container (per account)
         create_url = f"https://graph.facebook.com/v21.0/{ig_id}/media"
         create_params = {"caption": caption, "access_token": ACCESS_TOKEN}
 
@@ -136,25 +136,25 @@ def post_to_instagram(selected_ig_ids, media_url, caption, public_id, media_type
 
         creation_id = create_resp["id"]
 
-        # Step 2: Poll until video is processed
-        if media_type == "video":
-            status_url = f"https://graph.facebook.com/v21.0/{creation_id}"
-            for attempt in range(10):  # up to ~30s
-                status_resp = requests.get(
-                    status_url,
-                    params={"fields": "status_code", "access_token": ACCESS_TOKEN}
-                ).json()
-                status = status_resp.get("status_code")
-                if status == "FINISHED":
-                    break
-                elif status == "ERROR":
-                    results.append(f"❌ {ig_id}: Video processing failed → {status_resp}")
-                    creation_id = None
-                    break
-                time.sleep(3)
+        # Step 2: Poll until video/image is processed
+        status_url = f"https://graph.facebook.com/v21.0/{creation_id}"
+        for attempt in range(15):  # retry up to ~45s
+            status_resp = requests.get(
+                status_url,
+                params={"fields": "status_code", "access_token": ACCESS_TOKEN}
+            ).json()
+            status = status_resp.get("status_code")
 
-            if not creation_id:
-                continue
+            if status in ("FINISHED", "READY"):
+                break
+            elif status == "ERROR":
+                results.append(f"❌ {ig_id}: Processing failed → {status_resp}")
+                creation_id = None
+                break
+            time.sleep(3)
+
+        if not creation_id:
+            continue
 
         # Step 3: Publish
         publish_url = f"https://graph.facebook.com/v21.0/{ig_id}/media_publish"
@@ -163,16 +163,16 @@ def post_to_instagram(selected_ig_ids, media_url, caption, public_id, media_type
 
         if "id" in publish_resp:
             results.append(f"✅ {ig_id}: Post published successfully! (Post ID: {publish_resp['id']})")
-            # Auto-clean Cloudinary
-            try:
-                cloudinary.uploader.destroy(public_id, resource_type=media_type)
-            except Exception as e:
-                results.append(f"⚠️ Failed to delete from Cloudinary: {e}")
         else:
             results.append(f"❌ {ig_id}: Publish failed → {publish_resp}")
 
-    return results
+    # Cleanup Cloudinary after all accounts are processed
+    try:
+        cloudinary.uploader.destroy(public_id, resource_type=media_type)
+    except Exception as e:
+        results.append(f"⚠️ Failed to delete from Cloudinary: {e}")
 
+    return results
 
 # ==============================
 # MAIN APP
