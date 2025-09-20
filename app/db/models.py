@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Boolean
 from sqlalchemy.orm import declarative_base, relationship
 import datetime
 
@@ -19,13 +19,15 @@ class GroupAccount(Base):
 
 class ScheduledPost(Base):
     __tablename__ = "scheduled_posts"
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    ig_ids = Column(Text, nullable=False)
-    caption = Column(Text, nullable=False)
-    media_url = Column(String, nullable=False)
-    public_id = Column(String, nullable=False)
-    media_type = Column(String, nullable=False)
-    scheduled_time = Column(DateTime, nullable=False)
+    id = Column(Integer, primary_key=True, index=True)
+    ig_ids = Column(String)
+    caption = Column(String)
+    media_url = Column(String)
+    public_id = Column(String)
+    media_type = Column(String)
+    scheduled_time = Column(DateTime)
+    username = Column(String)
+    in_progress = Column(Boolean, default=False, nullable=False)
 
 class PostLog(Base):
     __tablename__ = "post_logs"

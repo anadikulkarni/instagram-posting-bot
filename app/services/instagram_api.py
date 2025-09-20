@@ -21,7 +21,7 @@ def get_instagram_accounts():
             accounts[igid] = pname
     return accounts
 
-def post_to_instagram(ig_ids, media_url, caption, public_id, media_type):
+def post_to_instagram(ig_ids, media_url, caption, public_id, media_type, username: str):
     results = []
     for ig in ig_ids:
         create_url = f"https://graph.facebook.com/v21.0/{ig}/media"
@@ -31,7 +31,7 @@ def post_to_instagram(ig_ids, media_url, caption, public_id, media_type):
             params["video_url"] = media_url
         else:
             params["image_url"] = media_url
-            params["media_type"] = "image"
+            params["media_type"] = "IMAGE"
 
         resp = requests.post(create_url, params=params).json()
         if "id" not in resp:
@@ -55,14 +55,14 @@ def post_to_instagram(ig_ids, media_url, caption, public_id, media_type):
             continue
 
         publish = requests.post(f"https://graph.facebook.com/v21.0/{ig}/media_publish",
-                                params={"creation_id": cid,"access_token": ACCESS_TOKEN}).json()
+                                params={"creation_id": cid,"access_token":ACCESS_TOKEN}).json()
         if "id" in publish:
             results.append(f"✅ {ig}: Published (ID: {publish['id']})")
         else:
             results.append(f"❌ {ig}: Publish failed → {publish}")
 
     delete_from_cloudinary(public_id, media_type)
-    log_post(st.session_state.username, ig_ids, caption, media_type, results)
+    log_post(username, ig_ids, caption, media_type, results)  # use username param
     return results
 
 def log_post(username, ig_ids, caption, media_type, results):
