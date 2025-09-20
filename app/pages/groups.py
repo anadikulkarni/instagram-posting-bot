@@ -3,6 +3,10 @@ from db.utils import SessionLocal
 from db.models import Group, GroupAccount
 from services.instagram_api import get_instagram_accounts
 from utils.cache import get_groups_cache
+from utils.auth import require_auth, logout_button
+
+require_auth()
+logout_button()
 
 st.title("👥 Manage Groups")
 ig_accounts = get_instagram_accounts()

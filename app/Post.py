@@ -3,7 +3,7 @@ import datetime
 import threading
 import time
 
-from utils.auth import login_form, require_auth
+from utils.auth import login_form, require_auth, logout_button
 from services.cloudinary_utils import upload_to_cloudinary
 from services.instagram_api import get_instagram_accounts, post_to_instagram
 from services.scheduler import schedule_post, run_scheduled_posts
@@ -12,9 +12,8 @@ from utils.cache import get_groups_cache
 st.set_page_config(page_title="Instagram Bulk Poster", page_icon="📲")
 
 # ============================== AUTH
-if not st.session_state.get("authenticated", False):
-    login_form()
-    st.stop()
+require_auth()
+logout_button()
 
 # ============================== CACHED IG ACCOUNTS
 if "ig_accounts" not in st.session_state:

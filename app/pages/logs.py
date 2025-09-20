@@ -2,6 +2,10 @@ import streamlit as st
 from db.utils import SessionLocal
 from db.models import PostLog
 from datetime import timezone, timedelta
+from utils.auth import require_auth, logout_button
+
+require_auth()
+logout_button()
 
 st.title("📜 Logs of Past Posts")
 

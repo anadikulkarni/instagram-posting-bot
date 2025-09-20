@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Boolean
 from sqlalchemy.orm import declarative_base, relationship
 import datetime
+import uuid
 
 Base = declarative_base()
 
@@ -38,3 +39,19 @@ class PostLog(Base):
     media_type = Column(String, nullable=False)
     results = Column(Text, nullable=False)
     timestamp = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
+    
+class Session(Base):
+    __tablename__ = "sessions"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    username = Column(String, nullable=False)
+    session_token = Column(String, unique=True, index=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    expires_at = Column(DateTime, nullable=False)
+
+    def is_valid(self) -> bool:
+        # instance attribute comparison (returns a plain Python bool)
+        return bool(self.expires_at and self.expires_at > datetime.datetime.utcnow())
+
+    @staticmethod
+    def generate_token():
+        return str(uuid.uuid4())
