@@ -92,6 +92,7 @@ def login_form() -> None:
             st.session_state["session_token"] = token
             st.session_state["username"] = user
             st.success("✅ Login successful")
+            st.rerun()
         else:
             st.error("❌ Invalid credentials")
 
@@ -130,9 +131,14 @@ def logout() -> None:
 
 
 def logout_button() -> None:
-    """Render a logout button in the sidebar. Call this once (e.g. from app.py)."""
+    """Render current username and a logout button in the sidebar."""
+    username = st.session_state.get("username")
+    if username:
+        st.sidebar.markdown(f"**Logged in as:** {username}")
     if st.sidebar.button("🚪 Logout"):
         logout()
+        st.sidebar.success("✅ Logged out")
+        st.rerun()
 
 
 def get_current_username() -> Optional[str]:
