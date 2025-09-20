@@ -143,7 +143,7 @@ def log_post(username, ig_ids, caption, media_type, results):
         caption=caption,
         media_type=media_type,
         results="\n".join(results),
-        timestamp=datetime.datetime.utcnow()
+        timestamp=datetime.datetime.now(datetime.UTC)
     )
     db.add(entry)
     db.commit()
@@ -215,7 +215,7 @@ def run_scheduled_posts():
     """
     db = SessionLocal()
     # ScheduledPost.scheduled_time stored as naive UTC datetime -> compare to datetime.utcnow() (naive)
-    now = datetime.datetime.utcnow()
+    now = datetime.datetime.now(datetime.UTC)
     due_posts = db.query(ScheduledPost).filter(ScheduledPost.scheduled_time <= now).all()
     results = []
     for post in due_posts:
@@ -233,7 +233,7 @@ def run_scheduled_posts():
 # Rate-limit scheduled posts to avoid DB hits on every UI interaction
 SCHEDULE_RUN_INTERVAL = 60  # seconds
 def run_scheduled_posts_if_due():
-    now = datetime.datetime.utcnow()
+    now = datetime.datetime.now(datetime.UTC)
     last = st.session_state.get("last_scheduled_run")
     if last is not None and (now - last).total_seconds() < SCHEDULE_RUN_INTERVAL:
         return []
@@ -483,5 +483,5 @@ else:
             "Results": l.results,
             "Time (UTC)": l.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
         })
-    st.dataframe(log_data, use_container_width=True)
+    st.dataframe(log_data, width='stretch')
 db.close()

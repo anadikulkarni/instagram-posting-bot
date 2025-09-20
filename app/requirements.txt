@@ -5,4 +5,5 @@ tqdm
 streamlit 
 cloudinary 
 python-magic 
-requests
+sqlalchemy
+psycopg2-binary
