@@ -2,6 +2,7 @@ import streamlit as st
 import datetime
 import threading
 import time
+import pytz
 
 from utils.auth import login_form, require_auth, logout_button
 from services.cloudinary_utils import upload_to_cloudinary
@@ -10,6 +11,8 @@ from services.scheduler import schedule_post, run_scheduled_posts
 from utils.cache import get_groups_cache
 
 st.set_page_config(page_title="Instagram Bulk Poster", page_icon="📲")
+
+IST = pytz.timezone("Asia/Kolkata")
 
 # ============================== AUTH
 require_auth()
@@ -98,13 +101,30 @@ with col1:
             if not media_url:
                 st.error("❌ Cloudinary upload failed.")
             else:
-                local_dt = datetime.datetime.combine(schedule_date, schedule_time)
-                local_dt_tz = local_dt.replace(tzinfo=LOCAL_TZ)
-                # schedule_post will convert to UTC & insert into DB
+                # Combine date + time from picker
+                naive_local = datetime.datetime.combine(schedule_date, schedule_time)
+
+                # Localize in IST
+                local_dt_tz = IST.localize(naive_local)
+
+                # Convert to UTC (naive)
+                utc_dt = local_dt_tz.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+
+                # Save UTC datetime to DB
                 schedule_post(
-                final_accounts, caption, media_url, public_id, media_type, local_dt_tz, st.session_state.username
+                    final_accounts,
+                    caption,
+                    media_url,
+                    public_id,
+                    media_type,
+                    utc_dt,
+                    st.session_state.username,
                 )
-                st.success(f"✅ Scheduled for {local_dt_tz.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+
+                st.success(
+                    f"✅ Scheduled for {local_dt_tz.strftime('%Y-%m-%d %H:%M:%S %Z')} "
+                    f"(will run at {utc_dt.strftime('%Y-%m-%d %H:%M:%S UTC')})"
+                )
 
 with col2:
     if st.button("⚡ Post Now"):
