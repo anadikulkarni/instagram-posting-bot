@@ -5,13 +5,13 @@ from typing import Optional, Any, cast
 import streamlit as st
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from config import get_database_url
 
 # import your ORM model class (make sure the model class name is not colliding with SQLAlchemy Session)
 from db.models import Session as DBSession  # DBSession is the ORM model class for the "sessions" table
 
-# --- DB connection ---
-# prefer secrets saved in Streamlit; fallback to env var
-DATABASE_URL = st.secrets["supabase"]["db_url"]
+# --- DB connection using hybrid config ---
+DATABASE_URL = get_database_url()
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -20,7 +20,6 @@ USER_CREDENTIALS = {"admin": "nil@1234", "test": "nil@1234"}
 
 # session lifetime
 SESSION_DURATION_MINUTES = 60
-
 
 # ----------------------------
 # Internal DB helpers
@@ -38,7 +37,6 @@ def _create_session(username: str) -> str:
         return token
     finally:
         db.close()
-
 
 def _validate_session(token: str) -> Optional[str]:
     """
@@ -66,7 +64,6 @@ def _validate_session(token: str) -> Optional[str]:
     finally:
         db.close()
 
-
 def _delete_session(token: str) -> None:
     """Delete a session DB row (no-op if not found)."""
     if not token:
@@ -77,7 +74,6 @@ def _delete_session(token: str) -> None:
         db.commit()
     finally:
         db.close()
-
 
 # ----------------------------
 # Streamlit-facing functions
@@ -95,7 +91,6 @@ def login_form() -> None:
             st.rerun()
         else:
             st.error("❌ Invalid credentials")
-
 
 def require_auth() -> bool:
     """
@@ -115,11 +110,10 @@ def require_auth() -> bool:
         _delete_session(token)
         for k in ("session_token", "username"):
             st.session_state.pop(k, None)
-        st.warning("Session expired or invalid — please log in again.")
+        st.warning("Session expired or invalid – please log in again.")
 
     login_form()
     st.stop()
-
 
 def logout() -> None:
     """Logout the current user (delete DB session + clear session_state)."""
@@ -128,7 +122,6 @@ def logout() -> None:
         _delete_session(token)
     for k in ("session_token", "username"):
         st.session_state.pop(k, None)
-
 
 def logout_button() -> None:
     """Render current username and a logout button in the sidebar."""
@@ -139,7 +132,6 @@ def logout_button() -> None:
         logout()
         st.sidebar.success("✅ Logged out")
         st.rerun()
-
 
 def get_current_username() -> Optional[str]:
     return st.session_state.get("username")

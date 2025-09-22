@@ -1,14 +1,3 @@
-"""
-Deploy this as a separate script that can be triggered by external cron services.
-Options:
-1. GitHub Actions (free, runs on schedule)
-2. Google Cloud Scheduler
-3. AWS Lambda with EventBridge
-4. Cron-job.org (free service)
-5. Zapier/Make webhooks
-"""
-
-import os
 import sys
 import datetime
 from pathlib import Path
@@ -16,7 +5,7 @@ from pathlib import Path
 # Add project root to path
 sys.path.append(str(Path(__file__).parent))
 
-# Import your modules
+# Import your modules - now they'll use the hybrid config automatically!
 from db.utils import SessionLocal
 from db.models import ScheduledPost
 from services.instagram_api import post_to_instagram
@@ -26,7 +15,7 @@ def run_scheduled_posts_cron():
     """
     Standalone function to run scheduled posts.
     Can be triggered by external cron services.
-    """
+    """    
     db = SessionLocal()
     now = datetime.datetime.utcnow()
     results = []
@@ -48,10 +37,11 @@ def run_scheduled_posts_cron():
                 setattr(post, "in_progress", True)
                 db.commit()
                 
-                # Process the post
+                # Process the post using existing instagram_api function
                 ig_ids = post.ig_ids.split(",")
                 username = str(post.username)
                 
+                # Use the existing post_to_instagram function that now uses hybrid config
                 post_results = post_to_instagram(
                     ig_ids=ig_ids,
                     media_url=post.media_url,

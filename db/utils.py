@@ -1,12 +1,11 @@
-import streamlit as st
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from db.models import Base
+from config import get_database_url
 
-engine = create_engine(st.secrets["supabase"]["db_url"])
-SessionLocal = sessionmaker(bind=engine)
+DATABASE_URL = get_database_url()
 
-# Initialize DB tables only once
-if "db_initialized" not in st.session_state:
-    Base.metadata.create_all(engine)
-    st.session_state["db_initialized"] = True
+if not DATABASE_URL:
+    raise ValueError("No database URL found. Set DATABASE_URL environment variable or configure Streamlit secrets.")
+
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

@@ -1,12 +1,13 @@
 import requests
-import streamlit as st
 import time
 from services.cloudinary_utils import delete_from_cloudinary
 from db.utils import SessionLocal
 from db.models import PostLog
 import datetime
+from config import get_fb_access_token
 
-ACCESS_TOKEN = st.secrets["fb_access_token"]["ACCESS_TOKEN"]
+# Get access token using hybrid config
+ACCESS_TOKEN = get_fb_access_token()
 
 def get_instagram_accounts():
     accounts = {}
@@ -62,7 +63,7 @@ def post_to_instagram(ig_ids, media_url, caption, public_id, media_type, usernam
             results.append(f"❌ {ig}: Publish failed → {publish}")
 
     delete_from_cloudinary(public_id, media_type)
-    log_post(username, ig_ids, caption, media_type, results)  # use username param
+    log_post(username, ig_ids, caption, media_type, results)
     return results
 
 def log_post(username, ig_ids, caption, media_type, results):

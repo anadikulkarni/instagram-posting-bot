@@ -1,11 +1,13 @@
-import streamlit as st
 import cloudinary
 import cloudinary.uploader
+from config import get_cloudinary_config
 
+# Configure Cloudinary using hybrid config
+config = get_cloudinary_config()
 cloudinary.config(
-    cloud_name=st.secrets["cloudinary"]["cloud_name"],
-    api_key=st.secrets["cloudinary"]["api_key"],
-    api_secret=st.secrets["cloudinary"]["api_secret"],
+    cloud_name=config["cloud_name"],
+    api_key=config["api_key"],
+    api_secret=config["api_secret"],
 )
 
 def upload_to_cloudinary(file):
