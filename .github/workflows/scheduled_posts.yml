@@ -2,7 +2,7 @@ name: Process Scheduled Instagram Posts
 
 on:
   schedule:
-    # Run every 5 minutes
+    # Run every 10 minutes
     - cron: '*/10 * * * *'
   workflow_dispatch: # Allow manual trigger
 
