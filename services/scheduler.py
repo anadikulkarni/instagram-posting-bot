@@ -4,6 +4,7 @@ from db.models import ScheduledPost
 from services.instagram_api import post_to_instagram
 import streamlit as st
 from sqlalchemy import true, false
+from sqlalchemy.exc import SQLAlchemyError
 
 SCHEDULE_RUN_INTERVAL = 300  # 5 minutes
 
@@ -21,12 +22,6 @@ def schedule_post(ig_ids, caption, media_url, public_id, media_type, local_dt_tz
     ))
     db.commit()
     db.close()
-
-import datetime
-from db.utils import SessionLocal
-from db.models import ScheduledPost
-from services.instagram_api import post_to_instagram
-from sqlalchemy.exc import SQLAlchemyError
 
 def run_scheduled_posts():
     """
