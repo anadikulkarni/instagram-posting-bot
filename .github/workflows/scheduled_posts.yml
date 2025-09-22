@@ -25,7 +25,9 @@ jobs:
     
     - name: Process scheduled posts
       env:
-        # Add your secrets to GitHub repository secrets
+        # GitHub Actions indicator (this is automatically set, but being explicit)
+        GITHUB_ACTIONS: true
+        # Your secrets
         DATABASE_URL: ${{ secrets.DATABASE_URL }}
         FB_ACCESS_TOKEN: ${{ secrets.FB_ACCESS_TOKEN }}
         CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}

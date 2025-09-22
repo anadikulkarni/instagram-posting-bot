@@ -13,16 +13,25 @@ def get_config_value(streamlit_path: list, env_var: str, default=None):
     Returns:
         Configuration value
     """
+    # Check if we're in GitHub Actions first
+    if os.getenv("GITHUB_ACTIONS") == "true":
+        return os.getenv(env_var, default)
+    
+    # Check if environment variable is explicitly set (for local development)
+    env_value = os.getenv(env_var)
+    if env_value is not None:
+        return env_value
+    
+    # Try Streamlit secrets as fallback
     try:
-        # Try Streamlit secrets first (when running in Streamlit)
         import streamlit as st
         value = st.secrets
         for key in streamlit_path:
             value = value[key]
         return value
-    except (ImportError, KeyError, AttributeError):
-        # Fall back to environment variables (when running in GitHub Actions)
-        return os.getenv(env_var, default)
+    except:
+        # If all fails, return default
+        return default
 
 # Configuration getters
 def get_database_url():
