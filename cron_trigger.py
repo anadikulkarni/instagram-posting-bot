@@ -5,7 +5,6 @@ from pathlib import Path
 # Add project root to path
 sys.path.append(str(Path(__file__).parent))
 
-# Import your modules - now they'll use the hybrid config automatically!
 from db.utils import SessionLocal
 from db.models import ScheduledPost
 from services.instagram_api import post_to_instagram
