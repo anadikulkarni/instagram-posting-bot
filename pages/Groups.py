@@ -33,6 +33,7 @@ with st.form("create_group_form", clear_on_submit=True):
                     db.add(GroupAccount(group_id=grp.id, ig_id=acc))
                 db.commit()
                 st.success(f"✅ Created group {gname}")
+                st.rerun()
             db.close()
             get_groups_cache(force=True)
 
