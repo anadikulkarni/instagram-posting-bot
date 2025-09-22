@@ -122,8 +122,7 @@ with col1:
                 )
 
                 st.success(
-                    f"✅ Scheduled for {local_dt_tz.strftime('%Y-%m-%d %H:%M:%S %Z')} "
-                    f"(will run at {utc_dt.strftime('%Y-%m-%d %H:%M:%S UTC')})"
+                    f"✅ Scheduled for {local_dt_tz.strftime('%Y-%m-%d %H:%M:%S %Z')}"
                 )
 
 with col2:
