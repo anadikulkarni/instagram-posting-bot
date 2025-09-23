@@ -72,7 +72,7 @@ for gname in selected_groups:
 final_accounts = list(dict.fromkeys(selected_accounts + expanded_group_accounts))
 
 # --- Upload + Caption ---
-uploaded_file = st.file_uploader("Upload an image or video", type=["png","jpg","jpeg","mp4","mov","avi"])
+uploaded_file = st.file_uploader("Upload an image or video (Max 100 MB)", type=["png","jpg","jpeg","mp4","mov","avi"])
 caption = st.text_area("Caption", placeholder="Write your caption here...")
 
 # --- Schedule inputs ---
