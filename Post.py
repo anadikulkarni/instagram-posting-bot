@@ -61,7 +61,7 @@ selected_accounts = st.multiselect(
 )
 
 selected_groups = st.multiselect(
-    "Or select groups",
+    "Select groups",
     options=list(groups_cache.keys())
 )
 
@@ -72,7 +72,7 @@ for gname in selected_groups:
 final_accounts = list(dict.fromkeys(selected_accounts + expanded_group_accounts))
 
 # --- Upload + Caption ---
-uploaded_file = st.file_uploader("Upload an image or video (Max 100 MB)", type=["png","jpg","jpeg","mp4","mov","avi"])
+uploaded_file = st.file_uploader("Upload an image or video", type=["png","jpg","jpeg","mp4","mov","avi"])
 caption = st.text_area("Caption", placeholder="Write your caption here...")
 
 # --- Schedule inputs ---
@@ -99,7 +99,7 @@ with col1:
         else:
             media_url, public_id, media_type = upload_to_cloudinary(uploaded_file)
             if not media_url:
-                st.error("❌ Cloudinary upload failed.")
+                st.error("❌ AWS upload failed.")
             else:
                 # Combine date + time from picker
                 naive_local = datetime.datetime.combine(schedule_date, schedule_time)
@@ -132,7 +132,7 @@ with col2:
         else:
             media_url, public_id, media_type = upload_to_cloudinary(uploaded_file)
             if not media_url:
-                st.error("❌ Cloudinary upload failed.")
+                st.error("❌ AWS upload failed.")
             else:
                 results = post_to_instagram(final_accounts, media_url, caption, public_id, media_type, username=st.session_state.username)
                 st.subheader("Results")
