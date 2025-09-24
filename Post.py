@@ -5,7 +5,7 @@ import time
 import pytz
 
 from utils.auth import login_form, require_auth, logout_button
-from services.cloudinary_utils import upload_to_cloudinary
+from services.aws_utils import upload_to_cloudinary
 from services.instagram_api import get_instagram_accounts, post_to_instagram
 from services.scheduler import schedule_post, run_scheduled_posts
 from utils.cache import get_groups_cache

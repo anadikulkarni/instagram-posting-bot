@@ -1,6 +1,6 @@
 import requests
 import time
-from services.cloudinary_utils import delete_from_cloudinary
+from services.aws_utils import delete_from_cloudinary
 from db.utils import SessionLocal
 from db.models import PostLog
 import datetime

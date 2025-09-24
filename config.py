@@ -1,4 +1,3 @@
-# config.py - Create this new file
 import os
 
 def get_config_value(streamlit_path: list, env_var: str, default=None):
