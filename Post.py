@@ -105,7 +105,7 @@ with col1:
                 st.success(
                     f"✅ Scheduled for {local_dt_tz.strftime('%Y-%m-%d %H:%M:%S %Z')}"
                 )
-                st.info("📝 Note: Posts are processed every 5 minutes via GitHub Actions")
+                st.info("📝 Note: Posts are processed every 20 minutes via GitHub Actions")
 
 with col2:
     if st.button("⚡ Post Now"):
@@ -116,7 +116,7 @@ with col2:
             if not media_url:
                 st.error("❌ AWS upload failed.")
             else:
-                with st.spinner(f"Posting to {len(final_accounts)} accounts... This may take several minutes for videos."):
+                with st.spinner(f"Posting to {len(final_accounts)} accounts... Do not refresh or close the tab."):
                     results = post_to_instagram(final_accounts, media_url, caption, public_id, media_type, username=st.session_state.username)
                 st.subheader("Results")
                 for r in results:
@@ -134,7 +134,7 @@ def show_upcoming_scheduled_posts():
         
         if upcoming:
             st.sidebar.subheader("📅 Upcoming Scheduled Posts")
-            st.sidebar.caption("(Processed every 5 minutes)")
+            st.sidebar.caption("(Processed every 20 minutes)")
             
             for post in upcoming:
                 # Convert UTC to IST for display
