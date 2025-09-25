@@ -134,7 +134,7 @@ def show_upcoming_scheduled_posts():
         
         if upcoming:
             st.sidebar.subheader("📅 Upcoming Scheduled Posts")
-            st.sidebar.caption("(Processed every 20 minutes)")
+            st.sidebar.caption("(Processed every 5 minutes)")
             
             for post in upcoming:
                 # Convert UTC to IST for display
