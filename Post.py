@@ -134,7 +134,7 @@ def show_upcoming_scheduled_posts():
         
         if upcoming:
             st.sidebar.subheader("📅 Upcoming Scheduled Posts")
-            st.sidebar.caption("(Processed every 5 minutes)")
+            st.sidebar.caption("(May take a few minutes to process)")
             
             for post in upcoming:
                 # Convert UTC to IST for display
@@ -168,5 +168,5 @@ show_upcoming_scheduled_posts()
 st.sidebar.markdown("---")
 st.sidebar.subheader("⚙️ Scheduler Status")
 st.sidebar.success("✅ Active via GitHub Actions")
-st.sidebar.caption("Posts are processed every 10 minutes")
+st.sidebar.caption("Posts are processed every 20 minutes")
 st.sidebar.caption("Check GitHub Actions tab for logs")
