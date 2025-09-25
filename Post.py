@@ -1,13 +1,13 @@
 import streamlit as st
 import datetime
-import threading
-import time
 import pytz
+from db.utils import SessionLocal
+from db.models import ScheduledPost
 
-from utils.auth import login_form, require_auth, logout_button
+from utils.auth import require_auth, logout_button
 from services.aws_utils import upload_to_cloudinary
 from services.instagram_api import get_instagram_accounts, post_to_instagram
-from services.scheduler import schedule_post, run_scheduled_posts
+from services.scheduler import schedule_post
 from utils.cache import get_groups_cache
 
 st.set_page_config(page_title="Instagram Bulk Poster", page_icon="📲")
@@ -30,25 +30,6 @@ if not ig_accounts:
 if "groups_cache" not in st.session_state:
     st.session_state.groups_cache = get_groups_cache()
 groups_cache = st.session_state.groups_cache
-
-# ============================== BACKGROUND SCHEDULED POSTS WORKER
-SCHEDULE_INTERVAL_SECONDS = 300  # 5 minutes
-if "scheduler_thread_started" not in st.session_state:
-    def scheduled_runner():
-        while True:
-            try:
-                results = run_scheduled_posts()
-                if results:
-                    if "scheduled_results" not in st.session_state:
-                        st.session_state.scheduled_results = []
-                    st.session_state.scheduled_results.extend(results)
-            except Exception as e:
-                print("Scheduler thread error:", e)
-            time.sleep(SCHEDULE_INTERVAL_SECONDS)
-
-    thread = threading.Thread(target=scheduled_runner, daemon=True)
-    thread.start()
-    st.session_state.scheduler_thread_started = True
 
 # ============================== MAIN APP
 st.title("📤 Post to Instagram")
@@ -124,6 +105,7 @@ with col1:
                 st.success(
                     f"✅ Scheduled for {local_dt_tz.strftime('%Y-%m-%d %H:%M:%S %Z')}"
                 )
+                st.info("📝 Note: Posts are processed every 5 minutes via GitHub Actions")
 
 with col2:
     if st.button("⚡ Post Now"):
@@ -134,13 +116,57 @@ with col2:
             if not media_url:
                 st.error("❌ AWS upload failed.")
             else:
-                results = post_to_instagram(final_accounts, media_url, caption, public_id, media_type, username=st.session_state.username)
+                with st.spinner(f"Posting to {len(final_accounts)} accounts... This may take several minutes for videos."):
+                    results = post_to_instagram(final_accounts, media_url, caption, public_id, media_type, username=st.session_state.username)
                 st.subheader("Results")
                 for r in results:
                     st.write(r)
 
-# ============================== OPTIONAL: Show recent scheduled results
-if "scheduled_results" in st.session_state and st.session_state.scheduled_results:
-    st.sidebar.subheader("⏰ Recent Scheduled Posts")
-    for r in st.session_state.scheduled_results[-10:]:  # last 10
-        st.sidebar.write(r)
+# ============================== Show Upcoming Scheduled Posts
+def show_upcoming_scheduled_posts():
+    """Display upcoming scheduled posts in the sidebar"""
+    db = SessionLocal()
+    try:
+        # Get upcoming scheduled posts
+        upcoming = db.query(ScheduledPost).filter(
+            ScheduledPost.scheduled_time > datetime.datetime.utcnow()
+        ).order_by(ScheduledPost.scheduled_time).limit(10).all()
+        
+        if upcoming:
+            st.sidebar.subheader("📅 Upcoming Scheduled Posts")
+            st.sidebar.caption("(Processed every 5 minutes)")
+            
+            for post in upcoming:
+                # Convert UTC to IST for display
+                utc_time = post.scheduled_time.replace(tzinfo=datetime.timezone.utc)
+                ist_time = utc_time.astimezone(IST)
+                
+                # Get account names
+                account_ids = post.ig_ids.split(',')
+                account_names = []
+                for ig_id in account_ids:
+                    name = ig_accounts.get(ig_id, ig_id)
+                    account_names.append(name)
+                
+                # Display post info
+                st.sidebar.write("---")
+                st.sidebar.write(f"⏰ **{ist_time.strftime('%Y-%m-%d %H:%M IST')}**")
+                st.sidebar.write(f"📱 {', '.join(account_names[:2])}{'...' if len(account_names) > 2 else ''}")
+                st.sidebar.write(f"💬 {post.caption[:50]}{'...' if len(post.caption) > 50 else ''}") # type: ignore
+        else:
+            st.sidebar.info("No upcoming scheduled posts")
+            
+    except Exception as e:
+        st.sidebar.error(f"Error loading scheduled posts: {e}")
+    finally:
+        db.close()
+
+# Show upcoming posts
+show_upcoming_scheduled_posts()
+
+# Add scheduler status in sidebar
+st.sidebar.markdown("---")
+st.sidebar.subheader("⚙️ Scheduler Status")
+st.sidebar.success("✅ Active via GitHub Actions")
+st.sidebar.caption("Posts are processed every 10 minutes")
+st.sidebar.caption("Check GitHub Actions tab for logs")

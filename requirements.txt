@@ -3,9 +3,9 @@ requests
 python-dotenv
 tqdm
 streamlit 
-cloudinary 
 python-magic 
 sqlalchemy
 psycopg2-binary
-boto3==1.40.37
+boto3
 uuid
+pytz
