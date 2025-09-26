@@ -105,7 +105,7 @@ with col1:
                 st.success(
                     f"✅ Scheduled for {local_dt_tz.strftime('%Y-%m-%d %H:%M:%S %Z')}"
                 )
-                st.info("📝 Note: Posts are processed every 20 minutes via GitHub Actions")
+                st.info("📝 Note: Posts are processed every 20 minutes. Scheduled posts only run from 9am to 8pm.")
 
 with col2:
     if st.button("⚡ Post Now"):
