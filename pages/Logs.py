@@ -27,7 +27,6 @@ else:
             "Time": ist_time.strftime("%Y-%m-%d %H:%M:%S"),  # IST display
             "Media": l.media_type,
             "Caption": l.caption[:100] + ("..." if len(l.caption) > 100 else ""), # type: ignore
-            "Accounts": l.ig_ids,
             "Results": l.results,
         })
     st.dataframe(data, width="stretch")
