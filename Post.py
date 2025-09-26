@@ -167,6 +167,6 @@ show_upcoming_scheduled_posts()
 # Add scheduler status in sidebar
 st.sidebar.markdown("---")
 st.sidebar.subheader("⚙️ Scheduler Status")
-st.sidebar.success("✅ Active via GitHub Actions")
+st.sidebar.success("✅ Active")
 st.sidebar.caption("Posts are processed every 20 minutes")
-st.sidebar.caption("Check GitHub Actions tab for logs")
+st.sidebar.caption("Scheduler only runs from 9am to 8pm")
