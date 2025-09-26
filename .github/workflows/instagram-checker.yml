@@ -39,7 +39,7 @@ jobs:
       - name: Run smart checker
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}  # Use PAT instead of default token
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
           if [ "${{ github.event.inputs.force_trigger }}" == "true" ]; then
@@ -47,7 +47,7 @@ jobs:
             # Directly trigger the heavy workflow
             python -c "
             import os
-            os.environ['GITHUB_TOKEN'] = '${{ secrets.GITHUB_TOKEN }}'
+            os.environ['GITHUB_TOKEN'] = '${{ secrets.PAT_TOKEN }}'
             os.environ['GITHUB_REPOSITORY'] = '${{ github.repository }}'
             from smart_checker import trigger_heavy_workflow
             trigger_heavy_workflow()
