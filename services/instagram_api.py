@@ -146,8 +146,8 @@ def post_to_instagram(ig_ids, media_url, caption, public_id, media_type, usernam
         initial_wait = 90  # 3 minutes for first video account
         subsequent_wait = 90  # 3 minutes for other video accounts
     else:
-        initial_wait = 45  # 45 seconds for images
-        subsequent_wait = 30  # 30 seconds for other images
+        initial_wait = 15  # 45 seconds for images
+        subsequent_wait = 5  # 30 seconds for other images
     
     containers_created = {}
     
@@ -161,7 +161,7 @@ def post_to_instagram(ig_ids, media_url, caption, public_id, media_type, usernam
         
         # Add delay between container creations to avoid rate limiting
         if index > 0:
-            delay = 5  # 5 seconds between container creations
+            delay = 1  # 5 seconds between container creations
             print(f"⏳ Waiting {delay} seconds before next container...")
             time.sleep(delay)
         
