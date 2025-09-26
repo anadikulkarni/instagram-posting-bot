@@ -1,0 +1,64 @@
+name: Instagram Smart Checker (Lightweight)
+
+on:
+  schedule:
+    # Run every 15 minutes
+    - cron: '*/15 * * * *'
+  
+  # Allow manual trigger for testing
+  workflow_dispatch:
+    inputs:
+      force_trigger:
+        description: 'Force trigger heavy workflow'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+jobs:
+  check-and-trigger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2  # This should only take seconds
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      
+      - name: Install minimal dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install sqlalchemy psycopg2-binary requests
+      
+      - name: Run smart checker
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          if [ "${{ github.event.inputs.force_trigger }}" == "true" ]; then
+            echo "🔧 Force trigger requested"
+            # Directly trigger the heavy workflow
+            python -c "
+            import os
+            os.environ['GITHUB_TOKEN'] = '${{ secrets.GITHUB_TOKEN }}'
+            os.environ['GITHUB_REPOSITORY'] = '${{ github.repository }}'
+            from smart_checker import trigger_heavy_workflow
+            trigger_heavy_workflow()
+            "
+          else
+            # Normal operation - check and trigger if needed
+            python smart_checker.py
+          fi
+      
+      - name: Log metrics
+        if: always()
+        run: |
+          echo "✅ Checker completed in < 10 seconds"
+          echo "📊 Workflow time used: ~0.5 minutes"

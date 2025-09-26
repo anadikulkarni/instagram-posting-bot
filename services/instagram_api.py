@@ -143,8 +143,8 @@ def post_to_instagram(ig_ids, media_url, caption, public_id, media_type, usernam
     
     # Determine wait times based on media type (tripled for better processing)
     if media_type == "video":
-        initial_wait = 180  # 3 minutes for first video account
-        subsequent_wait = 180  # 3 minutes for other video accounts
+        initial_wait = 90  # 3 minutes for first video account
+        subsequent_wait = 90  # 3 minutes for other video accounts
     else:
         initial_wait = 45  # 45 seconds for images
         subsequent_wait = 30  # 30 seconds for other images

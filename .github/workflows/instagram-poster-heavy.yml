@@ -1,0 +1,92 @@
+name: Instagram Heavy Poster (Actual Posting)
+
+on:
+  # Only triggered by the smart checker or manually
+  workflow_dispatch:
+    inputs:
+      triggered_by:
+        description: 'Triggered by'
+        required: false
+        default: 'manual'
+      check_time:
+        description: 'Check timestamp'
+        required: false
+        default: ''
+
+jobs:
+  post-to-instagram:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30  # Allow enough time for video posting
+    
+    steps:
+      - name: Log trigger source
+        run: |
+          echo "🎯 Triggered by: ${{ github.event.inputs.triggered_by || 'manual' }}"
+          echo "⏰ Check time: ${{ github.event.inputs.check_time || 'now' }}"
+          echo "📊 This run will use ~10-15 minutes of Actions time"
+      
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          cache: 'pip'
+      
+      - name: Install full dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Run Instagram poster
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FB_ACCESS_TOKEN: ${{ secrets.FB_ACCESS_TOKEN }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_BUCKET_NAME: ${{ secrets.AWS_BUCKET_NAME }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          GITHUB_ACTIONS: "true"
+        run: |
+          python -c "
+          import sys
+          from datetime import datetime
+          
+          print('='*60)
+          print(f'🚀 Heavy Poster Started at {datetime.utcnow()} UTC')
+          print('='*60)
+          
+          try:
+              from services.scheduler import run_scheduled_posts
+              
+              # Run the actual posting
+              results = run_scheduled_posts()
+              
+              if results:
+                  print(f'\n✅ Successfully processed {len(results)} posts:')
+                  for result in results:
+                      print(f'  - {result}')
+              else:
+                  print('\n📭 No posts were due (they may have been processed already)')
+              
+              print('\n' + '='*60)
+              print('✅ Heavy Poster Complete')
+              print('='*60)
+              
+          except Exception as e:
+              print(f'\n❌ Error in heavy poster: {e}')
+              import traceback
+              traceback.print_exc()
+              sys.exit(1)
+          "
+      
+      - name: Summary
+        if: always()
+        run: |
+          echo "----------------------------------------"
+          echo "📊 Workflow Summary:"
+          echo "- Triggered by: ${{ github.event.inputs.triggered_by || 'manual' }}"
+          echo "- Completed at: $(date)"
+          echo "- Approximate minutes used: 10-15"
+          echo "----------------------------------------"
