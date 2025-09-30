@@ -98,7 +98,7 @@ with col1:
                     media_url,
                     public_id,
                     media_type,
-                    utc_dt,
+                    local_dt_tz,
                     st.session_state.username,
                 )
 
