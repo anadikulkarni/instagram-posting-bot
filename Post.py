@@ -18,47 +18,82 @@ IST = pytz.timezone("Asia/Kolkata")
 require_auth()
 logout_button()
 
-# ============================== CACHED IG ACCOUNTS
-if "ig_accounts" not in st.session_state:
-    st.session_state.ig_accounts = get_instagram_accounts()
+# ============================== GET IG ACCOUNTS (ALWAYS FETCH FRESH)
+# This should NEVER rely on groups - it's a direct API call
+ig_accounts = get_instagram_accounts()
 
-ig_accounts = st.session_state.ig_accounts
 if not ig_accounts:
     st.error("❌ No linked Instagram accounts found.")
+    st.info("💡 Make sure your Facebook Pages are connected to Instagram Business accounts")
+    st.stop()
 
-# ============================== CACHED GROUPS
-if "groups_cache" not in st.session_state:
-    st.session_state.groups_cache = get_groups_cache()
-groups_cache = st.session_state.groups_cache
+# ============================== CACHED GROUPS (OPTIONAL FEATURE)
+groups_cache = get_groups_cache()
 
 # ============================== MAIN APP
 st.title("📤 Post to Instagram")
 
-# --- Account / Group selection ---
-selected_accounts = st.multiselect(
-    "Select individual accounts",
-    options=list(ig_accounts.keys()),
-    format_func=lambda x: ig_accounts[x]
-)
+st.success(f"✅ {len(ig_accounts)} Instagram accounts available")
 
-selected_groups = st.multiselect(
-    "Select groups",
-    options=list(groups_cache.keys())
-)
+# --- Account / Group selection ---
+st.subheader("1️⃣ Select Accounts")
+
+col1, col2 = st.columns([2, 1])
+
+with col1:
+    selected_accounts = st.multiselect(
+        "Select individual accounts",
+        options=list(ig_accounts.keys()),
+        format_func=lambda x: ig_accounts[x],
+        help="Choose specific Instagram accounts to post to"
+    )
+
+with col2:
+    if groups_cache:
+        selected_groups = st.multiselect(
+            "Or select groups",
+            options=list(groups_cache.keys()),
+            help="Select pre-configured groups of accounts"
+        )
+    else:
+        selected_groups = []
+        st.info("💡 Create groups in the Groups page")
 
 # Resolve final accounts (deduplicate)
 expanded_group_accounts = []
 for gname in selected_groups:
     expanded_group_accounts.extend(groups_cache.get(gname, []))
+
 final_accounts = list(dict.fromkeys(selected_accounts + expanded_group_accounts))
 
+# Show selection summary
+if final_accounts:
+    account_names = [ig_accounts.get(acc, acc) for acc in final_accounts]
+    st.info(f"📊 Selected {len(final_accounts)} account(s): {', '.join(account_names)}")
+else:
+    st.warning("⚠️ No accounts selected")
+
 # --- Upload + Caption ---
-uploaded_file = st.file_uploader("Upload an image or video", type=["png","jpg","jpeg","mp4","mov","avi"])
-caption = st.text_area("Caption", placeholder="Write your caption here...")
+st.subheader("2️⃣ Upload Media & Caption")
+
+uploaded_file = st.file_uploader(
+    "Upload an image or video", 
+    type=["png","jpg","jpeg","mp4","mov","avi"],
+    help="Supported formats: Images (PNG, JPG) and Videos (MP4, MOV, AVI)"
+)
+
+caption = st.text_area(
+    "Caption", 
+    placeholder="Write your caption here...",
+    help="Add your Instagram caption with hashtags and mentions"
+)
 
 # --- Schedule inputs ---
+st.subheader("3️⃣ Schedule or Post Now")
+
 LOCAL_TZ = datetime.datetime.now().astimezone().tzinfo
 now_local = datetime.datetime.now()
+
 if "schedule_date" not in st.session_state:
     st.session_state.schedule_date = now_local.date()
 if "schedule_time" not in st.session_state:
@@ -73,12 +108,15 @@ with col_time:
 
 # --- Buttons ---
 col1, col2 = st.columns(2)
+
 with col1:
-    if st.button("📅 Post Later"):
+    if st.button("📅 Post Later", type="secondary", use_container_width=True):
         if not uploaded_file or not caption or not final_accounts:
-            st.error("⚠️ Provide all fields.")
+            st.error("⚠️ Please provide media, caption, and select at least one account")
         else:
-            media_url, public_id, media_type = upload_to_cloudinary(uploaded_file)
+            with st.spinner("Uploading to AWS S3..."):
+                media_url, public_id, media_type = upload_to_cloudinary(uploaded_file)
+            
             if not media_url:
                 st.error("❌ AWS upload failed.")
             else:
@@ -98,29 +136,45 @@ with col1:
                     media_url,
                     public_id,
                     media_type,
-                    local_dt_tz,
+                    utc_dt,
                     st.session_state.username,
                 )
 
                 st.success(
                     f"✅ Scheduled for {local_dt_tz.strftime('%Y-%m-%d %H:%M:%S %Z')}"
                 )
-                st.info("📝 Note: Posts are processed every 20 minutes. Scheduled posts only run from 9am to 8pm.")
+                st.info("📝 Note: Posts are processed every 15-20 minutes from 9am to 8pm")
 
 with col2:
-    if st.button("⚡ Post Now"):
+    if st.button("⚡ Post Now", type="primary", use_container_width=True):
         if not uploaded_file or not caption or not final_accounts:
-            st.error("⚠️ Missing fields.")
+            st.error("⚠️ Please provide media, caption, and select at least one account")
         else:
-            media_url, public_id, media_type = upload_to_cloudinary(uploaded_file)
+            with st.spinner("Uploading to AWS S3..."):
+                media_url, public_id, media_type = upload_to_cloudinary(uploaded_file)
+            
             if not media_url:
                 st.error("❌ AWS upload failed.")
             else:
                 with st.spinner(f"Posting to {len(final_accounts)} accounts... Do not refresh or close the tab."):
-                    results = post_to_instagram(final_accounts, media_url, caption, public_id, media_type, username=st.session_state.username)
-                st.subheader("Results")
+                    results = post_to_instagram(
+                        final_accounts, 
+                        media_url, 
+                        caption, 
+                        public_id, 
+                        media_type, 
+                        username=st.session_state.username
+                    )
+                
+                st.subheader("📊 Results")
+                successful = len([r for r in results if "✅" in r])
+                st.metric("Success Rate", f"{successful}/{len(final_accounts)}")
+                
                 for r in results:
-                    st.write(r)
+                    if "✅" in r:
+                        st.success(r)
+                    else:
+                        st.error(r)
 
 # ============================== Show Upcoming Scheduled Posts
 def show_upcoming_scheduled_posts():
@@ -145,7 +199,7 @@ def show_upcoming_scheduled_posts():
                 account_ids = post.ig_ids.split(',')
                 account_names = []
                 for ig_id in account_ids:
-                    name = ig_accounts.get(ig_id, ig_id)
+                    name = ig_accounts.get(ig_id, f"ID:{ig_id}")
                     account_names.append(name)
                 
                 # Display post info
@@ -169,4 +223,10 @@ st.sidebar.markdown("---")
 st.sidebar.subheader("⚙️ Scheduler Status")
 st.sidebar.success("✅ Active")
 st.sidebar.caption("Posts are processed every 20 minutes")
-st.sidebar.caption("Scheduler only runs from 9am to 8pm")
+st.sidebar.caption("Scheduler runs from 9am to 8pm IST")
+
+# Debug section (can be hidden in production)
+with st.sidebar.expander("🔍 Debug Info"):
+    st.write(f"**Total IG Accounts:** {len(ig_accounts)}")
+    st.write(f"**Total Groups:** {len(groups_cache)}")
+    st.write(f"**Selected Accounts:** {len(final_accounts)}")
