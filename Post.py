@@ -18,9 +18,13 @@ IST = pytz.timezone("Asia/Kolkata")
 require_auth()
 logout_button()
 
-# ============================== GET IG ACCOUNTS (ALWAYS FETCH FRESH)
-# This should NEVER rely on groups - it's a direct API call
-ig_accounts = get_instagram_accounts()
+# ============================== GET IG ACCOUNTS (FETCH ONCE AND CACHE)
+# Cache accounts in session state to avoid repeated API calls
+if 'ig_accounts' not in st.session_state:
+    with st.spinner("Loading Instagram accounts..."):
+        st.session_state.ig_accounts = get_instagram_accounts()
+
+ig_accounts = st.session_state.ig_accounts
 
 if not ig_accounts:
     st.error("❌ No linked Instagram accounts found.")
@@ -41,10 +45,11 @@ st.subheader("1️⃣ Select Accounts")
 col1, col2 = st.columns([2, 1])
 
 with col1:
+    # Use pre-fetched accounts dictionary for format_func
     selected_accounts = st.multiselect(
         "Select individual accounts",
         options=list(ig_accounts.keys()),
-        format_func=lambda x: ig_accounts[x],
+        format_func=lambda x: ig_accounts[x],  # No API call, just dictionary lookup
         help="Choose specific Instagram accounts to post to"
     )
 
@@ -65,13 +70,6 @@ for gname in selected_groups:
     expanded_group_accounts.extend(groups_cache.get(gname, []))
 
 final_accounts = list(dict.fromkeys(selected_accounts + expanded_group_accounts))
-
-# Show selection summary
-if final_accounts:
-    account_names = [ig_accounts.get(acc, acc) for acc in final_accounts]
-    st.info(f"📊 Selected {len(final_accounts)} account(s): {', '.join(account_names)}")
-else:
-    st.warning("⚠️ No accounts selected")
 
 # --- Upload + Caption ---
 st.subheader("2️⃣ Upload Media & Caption")
