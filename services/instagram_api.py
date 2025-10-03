@@ -10,16 +10,66 @@ from config import get_fb_access_token
 ACCESS_TOKEN = get_fb_access_token()
 
 def get_instagram_accounts():
+    """
+    Fetch all Instagram Business accounts from Facebook Pages.
+    Handles pagination to ensure ALL pages are fetched.
+    """
     accounts = {}
-    pages = requests.get("https://graph.facebook.com/v21.0/me/accounts",
-                         params={"access_token": ACCESS_TOKEN}).json()
-    for page in pages.get("data", []):
-        pid, pname = page["id"], page["name"]
-        ig_resp = requests.get(f"https://graph.facebook.com/v21.0/{pid}",
-                               params={"fields": "instagram_business_account", "access_token": page["access_token"]}).json()
-        igid = ig_resp.get("instagram_business_account", {}).get("id")
-        if igid:
-            accounts[igid] = pname
+    
+    # Initial request with higher limit
+    url = "https://graph.facebook.com/v21.0/me/accounts"
+    params = {
+        "access_token": ACCESS_TOKEN,
+        "limit": 100  # Fetch up to 100 pages per request
+    }
+    
+    while url:
+        try:
+            response = requests.get(url, params=params).json()
+            
+            # Check for errors
+            if "error" in response:
+                print(f"❌ Facebook API Error: {response['error']}")
+                break
+            
+            pages = response.get("data", [])
+            print(f"📄 Fetched {len(pages)} pages in this batch")
+            
+            # Process each page
+            for page in pages:
+                pid, pname = page["id"], page["name"]
+                page_token = page.get("access_token")
+                
+                # Get Instagram account for this page
+                ig_resp = requests.get(
+                    f"https://graph.facebook.com/v21.0/{pid}",
+                    params={
+                        "fields": "instagram_business_account",
+                        "access_token": page_token
+                    }
+                ).json()
+                
+                igid = ig_resp.get("instagram_business_account", {}).get("id")
+                if igid:
+                    accounts[igid] = pname
+            
+            # Check for next page of results (pagination)
+            paging = response.get("paging", {})
+            next_url = paging.get("next")
+            
+            if next_url:
+                print(f"📄 More pages available, fetching next batch...")
+                url = next_url
+                params = {}  # Next URL contains all params
+            else:
+                # No more pages
+                url = None
+                
+        except Exception as e:
+            print(f"❌ Error fetching accounts: {e}")
+            break
+    
+    print(f"✅ Total Instagram accounts found: {len(accounts)}")
     return accounts
 
 def create_and_process_container(ig_id, media_url, caption, media_type, wait_time=180):
