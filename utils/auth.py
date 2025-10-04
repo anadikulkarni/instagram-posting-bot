@@ -19,7 +19,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 USER_CREDENTIALS = {"admin": "nil@1234", "test": "nil@1234"}
 
 # session lifetime
-SESSION_DURATION_MINUTES = 60
+SESSION_DURATION_MINUTES = 1440
 
 # ----------------------------
 # Internal DB helpers
