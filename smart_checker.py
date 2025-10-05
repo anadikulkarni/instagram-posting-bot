@@ -1,7 +1,8 @@
 # smart_checker.py
 """
 Lightweight script that checks if posts are due and triggers the heavy workflow.
-This runs every 5 minutes but only takes 1-2 seconds.
+This runs every 15 minutes but only takes 1-2 seconds.
+Includes distributed locking to prevent concurrent workflow runs.
 """
 
 import os
@@ -12,6 +13,103 @@ from datetime import datetime, timedelta
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
+
+# Lock configuration using database
+LOCK_TIMEOUT_MINUTES = 120  # Max time a lock can be held
+
+def acquire_db_lock():
+    """
+    Try to acquire a database lock to prevent concurrent workflow runs.
+    Returns True if lock acquired, False if another workflow is running.
+    """
+    database_url = os.getenv("DATABASE_URL")
+    if not database_url:
+        print("❌ DATABASE_URL not set")
+        return False
+    
+    try:
+        engine = create_engine(database_url, poolclass=NullPool)
+        
+        with engine.connect() as conn:
+            # Create lock table if it doesn't exist
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS workflow_locks (
+                    lock_name VARCHAR(100) PRIMARY KEY,
+                    locked_at TIMESTAMP NOT NULL,
+                    locked_by VARCHAR(200)
+                )
+            """))
+            conn.commit()
+            
+            # Check for existing lock
+            result = conn.execute(text("""
+                SELECT locked_at, locked_by 
+                FROM workflow_locks 
+                WHERE lock_name = 'instagram_poster'
+            """)).fetchone()
+            
+            if result:
+                locked_at, locked_by = result
+                age = datetime.utcnow() - locked_at
+                age_minutes = age.total_seconds() / 60
+                
+                if age_minutes < LOCK_TIMEOUT_MINUTES:
+                    print(f"⏳ Lock held by '{locked_by}' for {age_minutes:.1f} minutes")
+                    print(f"⏭️  Skipping - another workflow is running")
+                    return False
+                else:
+                    # Stale lock (workflow probably failed), remove it
+                    print(f"🧹 Removing stale lock ({age_minutes:.1f} minutes old)")
+                    conn.execute(text("""
+                        DELETE FROM workflow_locks 
+                        WHERE lock_name = 'instagram_poster'
+                    """))
+                    conn.commit()
+            
+            # Acquire lock
+            run_id = os.getenv("GITHUB_RUN_ID", "local_test")
+            
+            conn.execute(text("""
+                INSERT INTO workflow_locks (lock_name, locked_at, locked_by) 
+                VALUES ('instagram_poster', :now, :run_id)
+                ON CONFLICT (lock_name) 
+                DO UPDATE SET locked_at = :now, locked_by = :run_id
+            """), {"now": datetime.utcnow(), "run_id": run_id})
+            conn.commit()
+            
+            print(f"🔒 Lock acquired by run '{run_id}'")
+            return True
+            
+    except Exception as e:
+        print(f"❌ Error acquiring lock: {e}")
+        # On error, allow workflow to proceed (fail-open for safety)
+        return True
+
+def release_db_lock():
+    """
+    Release the database lock after workflow completes.
+    """
+    database_url = os.getenv("DATABASE_URL")
+    if not database_url:
+        return
+    
+    try:
+        engine = create_engine(database_url, poolclass=NullPool)
+        
+        with engine.connect() as conn:
+            run_id = os.getenv("GITHUB_RUN_ID", "local_test")
+            
+            conn.execute(text("""
+                DELETE FROM workflow_locks 
+                WHERE lock_name = 'instagram_poster' 
+                AND locked_by = :run_id
+            """), {"run_id": run_id})
+            conn.commit()
+            
+            print("🔓 Lock released")
+            
+    except Exception as e:
+        print(f"⚠️ Error releasing lock: {e}")
 
 def check_for_due_posts():
     """
@@ -101,40 +199,40 @@ def main():
     print(f"🔍 Smart Checker Started at {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC")
     print(f"{'='*60}")
     
-    # Check if posts are due
-    posts_due = check_for_due_posts()
+    # Try to acquire lock first
+    if not acquire_db_lock():
+        print("💤 Will check again in 15 minutes")
+        print(f"{'='*60}\n")
+        return  # Exit gracefully without triggering
     
-    if posts_due:
-        print("📬 Posts are due! Triggering heavy workflow...")
-        success = trigger_heavy_workflow()
+    try:
+        # Check if posts are due
+        posts_due = check_for_due_posts()
         
-        if success:
-            print("🚀 Heavy poster workflow will run shortly")
-            # Log this trigger to avoid duplicate triggers
-            log_trigger()
+        if posts_due:
+            print("📬 Posts are due! Triggering heavy workflow...")
+            success = trigger_heavy_workflow()
+            
+            if success:
+                print("🚀 Heavy poster workflow will run shortly")
+                print("⚠️  Lock will be held until heavy workflow completes")
+            else:
+                print("⚠️ Failed to trigger workflow, will retry next check")
+                release_db_lock()  # Release lock on failure
+                sys.exit(1)
         else:
-            print("⚠️ Failed to trigger workflow, will retry next check")
-            sys.exit(1)  # Exit with error
-    else:
-        print("📭 No posts due. Skipping heavy workflow.")
-        print("💤 Will check again in 5 minutes")
+            print("📭 No posts due. Skipping heavy workflow.")
+            print("💤 Will check again in 15 minutes")
+            release_db_lock()  # Release lock immediately if no posts
+    
+    except Exception as e:
+        print(f"❌ Unexpected error: {e}")
+        release_db_lock()  # Always release lock on error
+        raise
     
     print(f"{'='*60}")
     print(f"✅ Smart Checker Complete")
     print(f"{'='*60}\n")
-
-def log_trigger():
-    """
-    Optional: Log that we triggered the workflow to prevent duplicate triggers.
-    """
-    try:
-        # Create a timestamp file to track last trigger
-        trigger_file = "/tmp/last_trigger.txt"
-        with open(trigger_file, 'w') as f:
-            f.write(datetime.utcnow().isoformat())
-        print(f"📝 Logged trigger at {datetime.utcnow()}")
-    except:
-        pass  # Not critical
 
 if __name__ == "__main__":
     main()

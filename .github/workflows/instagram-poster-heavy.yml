@@ -16,13 +16,14 @@ on:
 jobs:
   post-to-instagram:
     runs-on: ubuntu-latest
-    timeout-minutes: 30  # Allow enough time for video posting
+    timeout-minutes: 180  # Allow enough time for video posting
     
     steps:
       - name: Log trigger source
         run: |
           echo "🎯 Triggered by: ${{ github.event.inputs.triggered_by || 'manual' }}"
           echo "⏰ Check time: ${{ github.event.inputs.check_time || 'now' }}"
+          echo "🔑 Run ID: ${{ github.run_id }}"
           echo "📊 This run will use ~10-15 minutes of Actions time"
       
       - name: Checkout code
@@ -48,13 +49,18 @@ jobs:
           AWS_BUCKET_NAME: ${{ secrets.AWS_BUCKET_NAME }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
           GITHUB_ACTIONS: "true"
+          GITHUB_RUN_ID: ${{ github.run_id }}
         run: |
           python -c "
           import sys
+          import os
           from datetime import datetime
+          from sqlalchemy import create_engine, text
+          from sqlalchemy.pool import NullPool
           
           print('='*60)
           print(f'🚀 Heavy Poster Started at {datetime.utcnow()} UTC')
+          print(f'🔑 Run ID: {os.getenv(\"GITHUB_RUN_ID\")}')
           print('='*60)
           
           try:
@@ -79,6 +85,30 @@ jobs:
               import traceback
               traceback.print_exc()
               sys.exit(1)
+              
+          finally:
+              # Always release lock when workflow completes
+              print('\n🔓 Releasing workflow lock...')
+              try:
+                  db_url = os.getenv('DATABASE_URL')
+                  if db_url:
+                      engine = create_engine(db_url, poolclass=NullPool)
+                      with engine.connect() as conn:
+                          run_id = os.getenv('GITHUB_RUN_ID', 'unknown')
+                          result = conn.execute(text(
+                              'DELETE FROM workflow_locks WHERE lock_name = :name AND locked_by = :run_id'
+                          ), {'name': 'instagram_poster', 'run_id': run_id})
+                          conn.commit()
+                          
+                          if result.rowcount > 0:
+                              print(f'✅ Lock released successfully by run {run_id}')
+                          else:
+                              print(f'⚠️ No lock found for run {run_id} (may have been released already)')
+                  else:
+                      print('⚠️ DATABASE_URL not set, cannot release lock')
+              except Exception as lock_err:
+                  print(f'❌ Error releasing lock: {lock_err}')
+                  # Don't fail the workflow just because lock release failed
           "
       
       - name: Summary
@@ -86,6 +116,7 @@ jobs:
         run: |
           echo "----------------------------------------"
           echo "📊 Workflow Summary:"
+          echo "- Run ID: ${{ github.run_id }}"
           echo "- Triggered by: ${{ github.event.inputs.triggered_by || 'manual' }}"
           echo "- Completed at: $(date)"
           echo "- Approximate minutes used: 10-15"
