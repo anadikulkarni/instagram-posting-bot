@@ -16,7 +16,7 @@ on:
 jobs:
   post-to-instagram:
     runs-on: ubuntu-latest
-    timeout-minutes: 180  # Allow enough time for video posting
+    timeout-minutes: 120  # Allow up to 2 hours for large video posts to many accounts
     
     steps:
       - name: Log trigger source
@@ -62,6 +62,20 @@ jobs:
           print(f'🚀 Heavy Poster Started at {datetime.utcnow()} UTC')
           print(f'🔑 Run ID: {os.getenv(\"GITHUB_RUN_ID\")}')
           print('='*60)
+          
+          # Acquire lock at the START of heavy workflow
+          db_url = os.getenv('DATABASE_URL')
+          if db_url:
+              engine = create_engine(db_url, poolclass=NullPool)
+              with engine.connect() as conn:
+                  run_id = os.getenv('GITHUB_RUN_ID', 'unknown')
+                  conn.execute(text(
+                      'INSERT INTO workflow_locks (lock_name, locked_at, locked_by) '
+                      'VALUES (:name, :time, :run_id) '
+                      'ON CONFLICT (lock_name) DO UPDATE SET locked_at = :time, locked_by = :run_id'
+                  ), {'name': 'instagram_poster', 'time': datetime.utcnow(), 'run_id': run_id})
+                  conn.commit()
+                  print(f'🔒 Lock acquired by run {run_id}')
           
           try:
               from services.scheduler import run_scheduled_posts
