@@ -13,7 +13,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.pool import NullPool
 
 # Lock configuration
-LOCK_TIMEOUT_MINUTES = 30  # Max time a lock can be held
+LOCK_TIMEOUT_MINUTES = 180  # Max time a lock can be held
 
 def check_if_locked():
     """

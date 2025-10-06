@@ -16,7 +16,7 @@ on:
 jobs:
   post-to-instagram:
     runs-on: ubuntu-latest
-    timeout-minutes: 120  # Allow up to 2 hours for large video posts to many accounts
+    timeout-minutes: 180  # Allow up to 3 hours for large video posts to many accounts
     
     steps:
       - name: Log trigger source
@@ -24,7 +24,6 @@ jobs:
           echo "🎯 Triggered by: ${{ github.event.inputs.triggered_by || 'manual' }}"
           echo "⏰ Check time: ${{ github.event.inputs.check_time || 'now' }}"
           echo "🔑 Run ID: ${{ github.run_id }}"
-          echo "📊 This run will use ~10-15 minutes of Actions time"
       
       - name: Checkout code
         uses: actions/checkout@v3
@@ -133,5 +132,4 @@ jobs:
           echo "- Run ID: ${{ github.run_id }}"
           echo "- Triggered by: ${{ github.event.inputs.triggered_by || 'manual' }}"
           echo "- Completed at: $(date)"
-          echo "- Approximate minutes used: 10-15"
           echo "----------------------------------------"
