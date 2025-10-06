@@ -272,7 +272,7 @@ Generate a long-lived Page Access Token for production use.
 
 - **Images**: JPG, PNG (aspect ratio 4:5 to 1.91:1)
 - **Videos**: MP4, MOV (duration 3-60 seconds for Reels)
-- **File Size**: Under 8MB for images, under 100MB for videos
+- **File Size**: Under 8MB for images, under 200MB for videos
 - **Caption**: Up to 2,200 characters
 
 ## Contributing
