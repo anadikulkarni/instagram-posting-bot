@@ -1,9 +1,26 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Boolean
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Boolean, Enum
 from sqlalchemy.orm import declarative_base, relationship
 import datetime
 import uuid
+import enum
 
 Base = declarative_base()
+
+class UserRole(enum.Enum):
+    ADMIN = "admin"
+    INTERN = "intern"
+
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    username = Column(String, unique=True, nullable=False, index=True)
+    password_hash = Column(String, nullable=False)
+    role = Column(Enum(UserRole), nullable=False, default=UserRole.INTERN)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    is_active = Column(Boolean, default=True, nullable=False)
+    
+    # Relationship to sessions
+    sessions = relationship("Session", back_populates="user", cascade="all, delete-orphan")
 
 class Group(Base):
     __tablename__ = "groups"
@@ -43,10 +60,13 @@ class PostLog(Base):
 class Session(Base):
     __tablename__ = "sessions"
     id = Column(Integer, primary_key=True, autoincrement=True)
-    username = Column(String, nullable=False)
+    username = Column(String, ForeignKey("users.username"), nullable=False)
     session_token = Column(String, unique=True, index=True, nullable=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     expires_at = Column(DateTime, nullable=False)
+    
+    # Relationship to user
+    user = relationship("User", back_populates="sessions")
 
     def is_valid(self) -> bool:
         # instance attribute comparison (returns a plain Python bool)
