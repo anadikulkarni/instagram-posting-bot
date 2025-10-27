@@ -222,9 +222,3 @@ st.sidebar.subheader("⚙️ Scheduler Status")
 st.sidebar.success("✅ Active")
 st.sidebar.caption("Posts are processed every 20 minutes")
 st.sidebar.caption("Scheduler runs from 9am to 8pm IST")
-
-# Debug section (can be hidden in production)
-with st.sidebar.expander("🔍 Debug Info"):
-    st.write(f"**Total IG Accounts:** {len(ig_accounts)}")
-    st.write(f"**Total Groups:** {len(groups_cache)}")
-    st.write(f"**Selected Accounts:** {len(final_accounts)}")
