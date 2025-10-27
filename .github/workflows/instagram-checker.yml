@@ -2,8 +2,8 @@ name: Instagram Smart Checker (Lightweight)
 
 on:
   schedule:
-    # Run every 15 minutes
-    - cron: "*/15 5-15 * * *"
+    # Run every 20 minutes
+    - cron: "*/20 5-20 * * *"
   
   # Allow manual trigger for testing
   workflow_dispatch:
