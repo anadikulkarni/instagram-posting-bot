@@ -16,7 +16,7 @@ on:
 jobs:
   post-to-instagram:
     runs-on: ubuntu-latest
-    timeout-minutes: 180  # Allow up to 3 hours for large video posts to many accounts
+    timeout-minutes: 360  # Allow up to 3 hours for large video posts to many accounts
     
     steps:
       - name: Log trigger source
