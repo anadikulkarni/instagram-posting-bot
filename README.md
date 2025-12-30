@@ -306,3 +306,5 @@ For issues and questions:
 ---
 
 **⚠️ Important**: This tool is for managing your own Instagram Business accounts. Always comply with Instagram's Terms of Service and API usage policies. Excessive posting or automation may result in account restrictions.
+
+⚠️ Instagram may automatically make certain Instagram accounts inactive. They have to be then manually activated from the Meta Business Portfolio page. 
